@@ -26,3 +26,12 @@ export const getSubDataFolder=(baseUrl:string,foldername:string,createIfNotExist
     }
     return res
 }
+
+export const logMessageDateInterval=(startDate:Date,endDate:Date,prefix:string = "")=>{
+    let seconds = Math.round((endDate.getTime() - startDate.getTime()) / 1000);
+    let prefixToAdd = ""
+    if(prefix){
+        prefixToAdd = `${prefix}::`
+    }
+    return `${prefixToAdd}Init >> ${startDate}::end>>${endDate}::time taken(seconds) >> ${seconds}`
+}

@@ -5,7 +5,7 @@ import * as fs from "fs"
 import * as path from "path"
 import * as uuid4 from "uuid4"
 import * as ffmpeg from "fluent-ffmpeg"
-import {getDataFolderUrl,getSubDataFolder} from "./app.utils"
+import {getDataFolderUrl,getSubDataFolder,logMessageDateInterval} from "./app.utils"
 
 interface DownloadedVideoData{
   localFileUrl:string,
@@ -53,6 +53,7 @@ export class AppService {
     this.logger.debug("generateVideoThumbnails")
     return new Promise((resolve,reject)=>{
       new ffmpeg(videoData.localFileUrl)
+      .inputOptions("-ss 0")
       .takeScreenshots({
           count: numberOfThumbs,
         }, getSubDataFolder(
@@ -83,29 +84,34 @@ export class AppService {
   handleUploadThumbsToRemote(
     originalVideoData:GetThumbListDTO,
     videoData:DownloadedVideoData):Promise<string[]>{
-      
+
     throw new NotImplementedException()
   }
 
   async getThumbList(data:GetThumbListDTO):Promise<ThumbInfo[]>{
     this.logger.debug("getThumbList")
+    this.logger.debug(data instanceof GetThumbListDTO)
     const maxThumbCount = data.getThumbCount()
+    const initDate1 = new Date()
     const downloadedVideoResult = await this.downloadVideoFile(data.videoUrl) as DownloadedVideoData
+    this.logger.debug(logMessageDateInterval(initDate1,new Date(),"downloadVideo"))
     const videoDurationInSec = data.videoDurationInSec
 
+    const initDate2 = new Date()
     await this.generateVideoThumbnails(
       downloadedVideoResult,
       maxThumbCount
     )
-
+    this.logger.debug(logMessageDateInterval(initDate2,new Date(),"generateVideoThumbs"))
     const intervalPerThumb = videoDurationInSec/maxThumbCount
-    const uploadedResult = await this.handleUploadThumbsToRemote(data,downloadedVideoResult)
-    const res:ThumbInfo[] = uploadedResult.map((thumbUrl,idx)=>{
-      return{
-        url:thumbUrl,
-        thumbStartTimeInSec:idx*intervalPerThumb
-      }
-    })
-    return res
+    // const uploadedResult = await this.handleUploadThumbsToRemote(data,downloadedVideoResult)
+    // const res:ThumbInfo[] = uploadedResult.map((thumbUrl,idx)=>{
+    //   return{
+    //     url:thumbUrl,
+    //     thumbStartTimeInSec:idx*intervalPerThumb
+    //   }
+    // })
+    // return res
+    return []
   }
 }
