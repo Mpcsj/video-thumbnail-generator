@@ -12,6 +12,8 @@ interface DownloadedVideoData{
   generatedFileId:string
 }
 
+const VIDEO_DURATION_IN_SEC_THRESHOLD = 50
+
 @Injectable()
 export class AppService {
   private readonly logger = new Logger(AppService.name)
@@ -47,32 +49,84 @@ export class AppService {
   }
 
 
-  async generateVideoThumbnails(
+  async generateVideoThumbnailsGranularStrategy(
     videoData:DownloadedVideoData,
     numberOfThumbs:number){
-    this.logger.debug("generateVideoThumbnails")
-    return new Promise((resolve,reject)=>{
-      new ffmpeg(videoData.localFileUrl)
-      .inputOptions("-ss 0")
-      .takeScreenshots({
-          count: numberOfThumbs,
-        }, getSubDataFolder(
-          this.localDataFolderUrl,
-          videoData.generatedFileId
-          ), function(err) {
-        if(err){
-          reject(err)
-        }else{
+      return new Promise((resolve,reject)=>{
+        new ffmpeg(videoData.localFileUrl)
+        .takeScreenshots({
+            count: numberOfThumbs,
+          }, getSubDataFolder(
+            this.localDataFolderUrl,
+            videoData.generatedFileId
+            ), function(err) {
+          if(err){
+            reject(err)
+          }else{
+            resolve({})
+          }
+        }).on("end",()=>{
+          console.log("end process successfully !")
           resolve({})
-        }
-      }).on("end",()=>{
-        console.log("end process successfully !")
-        resolve({})
-      }).on("error",(err)=>{
-        console.log("end process with errors :(")
-        reject(err)
-      });
+        }).on("error",(err)=>{
+          console.log("end process with errors!")
+          reject(err)
+        });
+      })
+  }
+  async generateVideoThumbnailsVideoSeekingStrategy(
+    videoData:DownloadedVideoData,
+    numberOfThumbs:number,
+    videoDurationInSec:number
+  ){
+    return new Promise((resolve,reject)=>{
+      let imagesMissing = numberOfThumbs
+      let hasBeenRejectedAlready = false
+      const folderUrl = getSubDataFolder(this.localDataFolderUrl,videoData.generatedFileId)
+      for(let idx =0;idx<numberOfThumbs;idx++){
+        const momentToSeek = (videoDurationInSec/numberOfThumbs)*idx
+        const thumbUrl = path.resolve(folderUrl,`img_${idx}.jpg`)
+        ffmpeg(videoData.localFileUrl)
+        .seekInput(momentToSeek)
+        .output(thumbUrl)
+        .outputOptions(
+            '-frames', '1'  // Capture just one frame of the video
+        )
+        .on('end', function() {
+          imagesMissing -=1
+          if(imagesMissing <=0){
+            resolve({})
+          }
+        }).on("error",(err)=>{
+          if(!hasBeenRejectedAlready){
+            hasBeenRejectedAlready = true
+            reject(err)
+          }
+          
+        })
+        .run()
+      }
     })
+  }
+
+  async generateVideoThumbnails(
+    videoData:DownloadedVideoData,
+    numberOfThumbs:number,
+    videoDurationInSec:number
+    ){
+    this.logger.debug("generateVideoThumbnails")
+    if(videoDurationInSec < VIDEO_DURATION_IN_SEC_THRESHOLD){
+      return this.generateVideoThumbnailsGranularStrategy(
+        videoData,
+        numberOfThumbs
+      )
+    }else{
+      return this.generateVideoThumbnailsVideoSeekingStrategy(
+        videoData,
+        numberOfThumbs,
+        videoDurationInSec
+      )
+    }
   }
 
   /**
@@ -100,18 +154,18 @@ export class AppService {
     const initDate2 = new Date()
     await this.generateVideoThumbnails(
       downloadedVideoResult,
-      maxThumbCount
+      maxThumbCount,
+      videoDurationInSec
     )
     this.logger.debug(logMessageDateInterval(initDate2,new Date(),"generateVideoThumbs"))
     const intervalPerThumb = videoDurationInSec/maxThumbCount
-    // const uploadedResult = await this.handleUploadThumbsToRemote(data,downloadedVideoResult)
-    // const res:ThumbInfo[] = uploadedResult.map((thumbUrl,idx)=>{
-    //   return{
-    //     url:thumbUrl,
-    //     thumbStartTimeInSec:idx*intervalPerThumb
-    //   }
-    // })
-    // return res
-    return []
+    const uploadedResult = await this.handleUploadThumbsToRemote(data,downloadedVideoResult)
+    const res:ThumbInfo[] = uploadedResult.map((thumbUrl,idx)=>{
+      return{
+        url:thumbUrl,
+        thumbStartTimeInSec:idx*intervalPerThumb
+      }
+    })
+    return res
   }
 }
