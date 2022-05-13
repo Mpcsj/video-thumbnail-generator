@@ -2,7 +2,6 @@ import * as path from "path"
 import * as fs from "fs"
 
 export const createFolderIfNotExists=(folderUrl:string)=>{
-    console.log(`createFolderIfNotExists>>${folderUrl}`)
     if(!fs.existsSync(folderUrl)){
         fs.mkdirSync(folderUrl)
     }

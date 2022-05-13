@@ -1,0 +1,1 @@
+export const VIDEO_DURATION_IN_SEC_THRESHOLD = 50
