@@ -58,13 +58,13 @@ export class AppService {
   ):Promise<ThumbInfo[]>{
     const maxThumbCount = data.getThumbCount()
     const videoDurationInSec = data.videoDurationInSec
-    await this.videohandler.generateVideoThumbnails(
+    const generatedThumbnails = await this.videohandler.generateVideoThumbnails(
       downloadedVideoResult,
       maxThumbCount,
       videoDurationInSec
     )
     const intervalPerThumb = videoDurationInSec/maxThumbCount
-    const uploadedResult = await this.videoThumbUploader.handleUploadThumbsToRemote(data,downloadedVideoResult)
+    const uploadedResult = await this.videoThumbUploader.handleUploadThumbsToRemote(generatedThumbnails,downloadedVideoResult)
     const res:ThumbInfo[] = uploadedResult.map((thumbUrl,idx)=>{
       return{
         url:thumbUrl,

@@ -54,7 +54,9 @@ export class VideoHandler{
         videoData:DownloadedVideoData,
         numberOfThumbs:number,
         videoDurationInSec:number
-      ){
+      ):Promise<Map<number,string>>{
+        const outputUrls:string[] = []
+        const result = new Map<number,string>()
         return new Promise((resolve,reject)=>{
           let imagesMissing = numberOfThumbs
           let hasBeenRejectedAlready = false
@@ -63,6 +65,9 @@ export class VideoHandler{
             videoDurationInSec,numberOfThumbs
             ).forEach((momentToSeek:number,idx:number)=>{
               const thumbUrl = path.resolve(folderUrl,`img_${idx}.jpg`)
+
+              outputUrls.push(thumbUrl)
+              result.set(momentToSeek,thumbUrl)
               ffmpeg(videoData.localFileUrl)
               .seekInput(momentToSeek)
               .output(thumbUrl)
@@ -72,7 +77,7 @@ export class VideoHandler{
               .on('end', function() {
                 imagesMissing -=1
                 if(imagesMissing <=0){
-                  resolve({})
+                  resolve(result)
                 }
               }).on("error",(err)=>{
                 if(!hasBeenRejectedAlready){
@@ -91,21 +96,26 @@ export class VideoHandler{
         videoData:DownloadedVideoData,
         numberOfThumbs:number,
         videoDurationInSec:number
-        ){
+        ):Promise<Map<number,string>>{
         this.logger.debug("generateVideoThumbnails")
-        if(videoDurationInSec < VIDEO_DURATION_IN_SEC_THRESHOLD){
-          return this.generateVideoThumbnailsGranularStrategy(
-            videoData,
-            numberOfThumbs
-          )
-        }else{
-          return this.generateVideoThumbnailsVideoSeekingStrategy(
-            videoData,
-            numberOfThumbs,
-            videoDurationInSec
-          )
-        }
-        // existente: 03b...083
+        // if(videoDurationInSec < VIDEO_DURATION_IN_SEC_THRESHOLD){
+        //   return this.generateVideoThumbnailsGranularStrategy(
+        //     videoData,
+        //     numberOfThumbs
+        //   )
+        // }else{
+        //   return this.generateVideoThumbnailsVideoSeekingStrategy(
+        //     videoData,
+        //     numberOfThumbs,
+        //     videoDurationInSec
+        //   )
+        // }
+        return this.generateVideoThumbnailsVideoSeekingStrategy(
+          videoData,
+          numberOfThumbs,
+          videoDurationInSec
+        )
+        
       }
 
 }
