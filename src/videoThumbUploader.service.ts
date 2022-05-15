@@ -43,7 +43,6 @@ export class VideoThumbUploader{
         const result:string[] = []
         await Promise.all(this.getSortedKeysAsList(thumbListUrl).map(async (key:number,idx:number)=>{
             const url = thumbListUrl.get(key)
-
             const current = await this.uploadItem(url,idx.toString(),videoData)
             result.push(current.Location)
         }))
