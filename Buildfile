@@ -1,1 +1,1 @@
-make: scripts/setup_server.sh
+make: ./setup_server.sh
