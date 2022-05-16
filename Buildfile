@@ -1,0 +1,1 @@
+make: scripts/setup_server.sh
