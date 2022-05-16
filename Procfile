@@ -1,1 +1,1 @@
-web: yarn deploy
+web: node dist/main.js
