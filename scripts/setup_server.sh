@@ -1,5 +1,6 @@
 #!/bin/sh
 
+echo "SETUP_SERVER::INIT"
 sudo su
 cd /usr/local/bin
 mkdir ffmpeg
@@ -15,3 +16,4 @@ sudo yum install gcc-c++ make -y
 npm install yarn -g
 npm i -g @nestjs/cli
 npm install -g typescript
+echo "SETUP_SERVER::END"
